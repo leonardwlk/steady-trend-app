@@ -35,7 +35,7 @@ assets = st.sidebar.multiselect("ETFs in the portfolio", options=TICKERS, defaul
                                 help="Each selected ETF gets an equal share. The 1/n benchmark uses the same ETFs.")
 start_year = st.sidebar.slider("Backtest start year", min_value=2005, max_value=2020, value=2005,
                                help="Performance is measured from January of this year (2005: from the first "
-                                    "month with a full moving average, September 2005).")
+                                    "month with a full moving average, e.g. September 2005 for 10 months).")
 
 # ---------------------------------------------------------------- header and explanation for the client
 st.title("Steady Trend – a trend-filtered ETF portfolio")
