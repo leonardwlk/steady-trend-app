@@ -2,7 +2,9 @@
 
 Streamlit app for the **2270 Financial Modeling group assignment (Nova SBE, group AT)**.
 
-**Deployed app:** *to be added after deployment*
+**Deployed app:** https://steady-trend.streamlit.app/
+
+**Source code:** https://github.com/leonardwlk/steady-trend-app
 
 ## What it is
 "Steady Trend" is a trend-filtered ETF portfolio for savers about ten years from retirement. Five ETFs
