@@ -11,9 +11,33 @@ from backtest import TICKERS, MARKET, load_data, run_backtest, performance_table
 
 st.set_page_config(page_title="Steady Trend backtest", layout="wide")
 
-COLORS = ["#1f77b4", "#ff7f0e", "#7f7f7f"]     # Steady Trend, 1/n, 60/40 - same colours as the notebook
+COLORS = ["#1F77B4", "#FF7F0E", "#7F7F7F"]     # Steady Trend, 1/n, 60/40 - same colours as the notebook
+NAVY, BLUE, GREY, BORDER = "#0B1F3A", "#1F77B4", "#5B6573", "#E3E8EF"   # prospectus design colours
 ETF_NAMES = {"SPY": "SPY – US equities", "EFA": "EFA – developed ex-US equities",
              "IEF": "IEF – 7-10y US Treasuries", "GLD": "GLD – gold", "VNQ": "VNQ – US REITs"}
+
+# ---------------------------------------------------------------- look: prospectus design (layout only, no numbers)
+st.markdown(f"""
+<style>
+  .st-label {{ color: {BLUE}; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em;
+               text-transform: uppercase; margin-bottom: -0.4rem; }}
+  .st-title {{ color: {NAVY}; font-size: 2.6rem; font-weight: 800; line-height: 1.15; margin: 0.2rem 0 0.2rem 0; }}
+  .st-subtitle {{ color: {GREY}; font-size: 1.1rem; margin-bottom: 1rem; }}
+  /* the four headline cards: st.container(border=True, key="card_...") */
+  [class*="st-key-card"] {{ background-color: #F5F7FA; border: 1px solid {BORDER} !important;
+                            border-radius: 12px; padding: 0.4rem 0.6rem; }}
+  [class*="st-key-card"] [data-testid="stMetricValue"] {{ color: {NAVY}; font-size: 2.1rem; font-weight: 700; }}
+  [class*="st-key-card"] [data-testid="stMetricLabel"] p {{ color: {GREY}; font-size: 0.85rem; }}
+  h2, h3 {{ color: {NAVY}; }}
+</style>
+""", unsafe_allow_html=True)
+
+# clean matplotlib style for all charts: no top/right spines, light grey grid, legend without frame
+plt.rcParams.update({"axes.spines.top": False, "axes.spines.right": False,
+                     "axes.edgecolor": "#B8C2CF", "axes.grid": True, "grid.color": "#E3E8EF",
+                     "grid.linewidth": 0.8, "axes.axisbelow": True, "legend.frameon": False,
+                     "axes.labelcolor": "#18212F", "xtick.color": GREY, "ytick.color": GREY,
+                     "font.family": "sans-serif", "font.size": 10})
 
 
 @st.cache_data(ttl=3600, show_spinner="Downloading prices (Yahoo Finance) and T-bill rates (FRED)...")
@@ -40,7 +64,10 @@ st.sidebar.caption("Moodle group AT: Eric Doering (78838), Cloé Dellac (79655),
                    "Liz Annkathrin Krönke (79332), Leonard Wölk (77920), Julian Zährl (78758)")
 
 # ---------------------------------------------------------------- header and explanation for the client
-st.title("Steady Trend – a trend-filtered ETF portfolio")
+st.markdown('<div class="st-label">Steady Trend</div>'
+            '<div class="st-title">Steady Trend</div>'
+            '<div class="st-subtitle">A trend-filtered five-ETF portfolio for savers about ten years from retirement.'
+            '</div>', unsafe_allow_html=True)
 st.markdown(
     "**For savers about 10 years from retirement** who want equity-like growth but cannot afford a 2008-style loss. "
     "The money is split equally across up to five ETFs. At the end of every month, each ETF is checked: if its price "
@@ -88,45 +115,61 @@ st.caption(f"Backtest {rets.index[0]:%b %Y} – {rets.index[-1]:%b %Y} ({len(ret
            f"ETFs: {', '.join(tickers)}.")
 s = perf["Steady Trend"]
 st.markdown("**Steady Trend** – difference to the 1/n benchmark shown below each number (pp = percentage points):")
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("Final value of 1", f"{s['Final value of 1']:.2f}",
-          f"{s['Final value of 1'] - perf.loc['Final value of 1', eq_name]:+.2f} vs 1/n")
-c2.metric("Avg. annual return", f"{s['Ann. avg. return']:.1%}",
-          f"{100 * (s['Ann. avg. return'] - perf.loc['Ann. avg. return', eq_name]):+.1f} pp vs 1/n")
-c3.metric("Max drawdown", f"-{s['Max drawdown']:.1%}",
-          f"{100 * (perf.loc['Max drawdown', eq_name] - s['Max drawdown']):+.1f} pp vs 1/n")   # + = smaller loss
-c4.metric("Sharpe ratio", f"{s['Sharpe ratio']:.2f}",
-          f"{s['Sharpe ratio'] - perf.loc['Sharpe ratio', eq_name]:+.2f} vs 1/n")
+cards = [("Final value of 1", f"{s['Final value of 1']:.2f}",
+          f"{s['Final value of 1'] - perf.loc['Final value of 1', eq_name]:+.2f} vs 1/n"),
+         ("Avg. annual return", f"{s['Ann. avg. return']:.1%}",
+          f"{100 * (s['Ann. avg. return'] - perf.loc['Ann. avg. return', eq_name]):+.1f} pp vs 1/n"),
+         ("Max drawdown", f"-{s['Max drawdown']:.1%}",
+          f"{100 * (perf.loc['Max drawdown', eq_name] - s['Max drawdown']):+.1f} pp vs 1/n"),   # + = smaller loss
+         ("Sharpe ratio", f"{s['Sharpe ratio']:.2f}",
+          f"{s['Sharpe ratio'] - perf.loc['Sharpe ratio', eq_name]:+.2f} vs 1/n")]
+for i, (col, (label, value, delta)) in enumerate(zip(st.columns(4), cards)):
+    with col.container(border=True, key=f"card_{i}"):        # rounded card (styled in the CSS above)
+        st.metric(label, value, delta)                          # green = better than 1/n, red = worse
+
 
 # ---------------------------------------------------------------- charts
+def show_chart(fig, ax, legend_loc="upper left"):
+    # common finishing touches for every chart, then display it (legend_loc=None: no legend)
+    ax.set_xlabel("")
+    if legend_loc is not None:
+        ax.legend(loc=legend_loc, ncol=3)
+    fig.tight_layout()
+    st.pyplot(fig)
+    plt.close(fig)
+
+
 st.subheader("Growth of 1 invested")
 fig, ax = plt.subplots(figsize=(10, 4.5))
-cumulative.plot(ax=ax, color=COLORS)
-ax.set_ylabel("Value of 1 invested"); ax.set_xlabel("")
-st.pyplot(fig)
+cumulative.plot(ax=ax, color=COLORS, linewidth=1.8)
+ax.set_ylabel("Value of 1 invested")
+show_chart(fig, ax)
 
 st.subheader("Drawdown from the previous peak")
 hwm = cumulative.cummax()                                 # high-water mark
 fig, ax = plt.subplots(figsize=(10, 3.5))
-(-100 * (hwm - cumulative) / hwm).plot(ax=ax, color=COLORS)
-ax.set_ylabel("%"); ax.set_xlabel("")
-st.pyplot(fig)
+(-100 * (hwm - cumulative) / hwm).plot(ax=ax, color=COLORS, linewidth=1.4)
+ax.set_ylabel("%")
+show_chart(fig, ax, legend_loc="lower left")
 
 st.subheader("Steady Trend: share of the portfolio held in T-bills")
 cash_share = bt["weights"]["CASH"].loc[str(start_year):]
 fig, ax = plt.subplots(figsize=(10, 3))
-ax.fill_between(cash_share.index, 100 * cash_share, step="post", alpha=0.6, color=COLORS[0])
+ax.fill_between(cash_share.index, 100 * cash_share, step="post", alpha=0.35, color=COLORS[0], linewidth=0)
 ax.set_ylabel("%"); ax.set_ylim(0, 100); ax.set_xlim(cash_share.index[0], cash_share.index[-1])
-st.pyplot(fig)
+show_chart(fig, ax, legend_loc=None)
 
 # ---------------------------------------------------------------- performance table
 st.subheader("Performance measures")
 pct_rows = ["Ann. avg. return", "Ann. volatility", "Alpha (ann., vs SPY)", "Max drawdown", "CAGR"]
 shown = perf.copy().astype(object)
-for row in perf.index:
+for row in perf.index:                                    # percentages for returns, 2 decimals for ratios
     fmt = "{:.1%}" if row in pct_rows else "{:.2f}"
     shown.loc[row] = [("–" if pd.isna(v) else fmt.format(v)) for v in perf.loc[row]]
-st.table(shown)
+styled = shown.style.set_properties(**{"text-align": "right"})
+styled = styled.set_properties(subset=["Steady Trend"],   # highlight the strategy's column
+                               **{"background-color": "#E8F1FA", "color": NAVY, "font-weight": "bold"})
+st.dataframe(styled, width="stretch", height=(len(perf) + 1) * 35 + 3)
 
 st.markdown(
     "**How to read this.** *Annual return* and *volatility* are monthly averages × 12 and standard deviations × √12. "
