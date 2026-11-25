@@ -36,6 +36,8 @@ assets = st.sidebar.multiselect("ETFs in the portfolio", options=TICKERS, defaul
 start_year = st.sidebar.slider("Backtest start year", min_value=2005, max_value=2020, value=2005,
                                help="Performance is measured from January of this year (2005: from the first "
                                     "month with a full moving average, e.g. September 2005 for 10 months).")
+st.sidebar.caption("Moodle group AT: Eric Doering (78838), Cloé Dellac (79655), Mark Iourist (78670), "
+                   "Liz Annkathrin Krönke (79332), Leonard Wölk (77920), Julian Zährl (78758)")
 
 # ---------------------------------------------------------------- header and explanation for the client
 st.title("Steady Trend – a trend-filtered ETF portfolio")

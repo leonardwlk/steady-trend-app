@@ -1,5 +1,8 @@
 # Steady Trend – interactive backtest
 
+Moodle group AT: Eric Doering (78838), Cloé Dellac (79655), Mark Iourist (78670), Liz Annkathrin Krönke (79332),
+Leonard Wölk (77920), Julian Zährl (78758)
+
 Streamlit app for the **2270 Financial Modeling group assignment (Nova SBE, group AT)**.
 
 **Deployed app:** https://steady-trend.streamlit.app/
